@@ -1,7 +1,6 @@
 #include "getImage.h"
 
-
-int checkAndSetSPI(SpiConfig* config)
+int checkSPI(SpiConfig* config)
 {
     int fd = open(config->device, O_RDWR);
     if (fd < 0) {
@@ -15,7 +14,6 @@ int checkAndSetSPI(SpiConfig* config)
         ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &config->speed) < 0 ||
         ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &config->speed) < 0) {
         pabort("SPI configuration failed");
-        return -1;
     }
 
     return fd;
@@ -77,7 +75,7 @@ int captureOneSegment(int fd, u8 dest[PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE], in
             usleep(1000);
 
             if (resets >= 750) {
-                fprintf(stderr, "Too many resets while capturing segment\n");
+                printf("Too many resets\n");
                 return -1;
             }
             continue;
@@ -92,6 +90,7 @@ int captureOneSegment(int fd, u8 dest[PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE], in
             usleep(1000);
 
             if (resets >= 750) {
+              printf("Too many resets\n");
                 return -1;
             }
             continue;

@@ -1,9 +1,6 @@
 #include "getImage.h"
 #include "sending.h"
 
-
-// --TODO modify code to match functionality for 'NEW' packet
-
 void check(int fd, const char* type)
 {
     if (fd < 0)
@@ -12,12 +9,13 @@ void check(int fd, const char* type)
         perror("failed\n");
     }
 }
-void setSocket(struct sockaddr_in* sockaddr)
+
+void setSocket(struct sockaddr_rc* sockaddy)
 {
-    memset(sockaddr, 0, sizeof(*sockaddr));
-    sockaddr->sin_family = AF_INET;
-    sockaddr->sin_port = htons(PORT);
-    sockaddr->sin_addr.s_addr = INADDR_ANY;
+    memset(sockaddy, 0, sizeof(*sockaddy));
+    sockaddy->rc_family = AF_BLUETOOTH;
+    sockaddy->rc_bdaddr = *BDADDR_ANY;
+    sockaddy->rc_channel = 1;
 }
 
 int writeAll(int fd, void* buf, size_t buflen)
@@ -31,7 +29,6 @@ int writeAll(int fd, void* buf, size_t buflen)
 
         if (n < 0)
         {
-            return -1;
             perror("something happened w/ writing in writeAll()\n");
         }
 
@@ -118,6 +115,7 @@ u8* buildStatus(const Packet* packet)
   writeu16(buf, packet->header.min, &offset);
   writeu16(buf, packet->header.max, &offset);
   writeu16(buf, packet->header.avg, &offset);
+  writeu8(buf, packet->header.flagImage, &offset);
 
   if (packet->header.flagImage)
   {
@@ -163,7 +161,6 @@ int readAll(int fd, void* buff, size_t bufflen)
 
         if (n < 0)
         {
-            return -1;
             perror("Somethng fucked up w/ read");
         }
 
@@ -182,8 +179,8 @@ void setStatus(Packet* packet)
 {
   if (!packet) return;
 
-  packet->header.ack = 0xF;
-  packet->header.stop = 0xA;
+  packet->header.ack = 0xFF;
+  packet->header.stop = 0xAA;
 }
 
 void setStatusFromImage(Packet* packet, u32 img[FULL_ROWS][COLUMNS])
@@ -193,5 +190,65 @@ void setStatusFromImage(Packet* packet, u32 img[FULL_ROWS][COLUMNS])
   packet->header.avg = getAverage(img);
   packet->header.min = getMin(img);
   packet->header.max = getMax(img);
+  setStatus(packet);
 }
 
+void setTermios(struct termios* tty, int fd)
+{
+    tcgetattr(fd, tty);
+
+    cfmakeraw(tty);
+
+    cfsetispeed(tty, B115200);
+    cfsetospeed(tty, B115200);
+
+    tty->c_cc[VMIN]  = 1;
+    tty->c_cc[VTIME] = 0;
+
+    tcsetattr(fd, TCSANOW, tty);
+}
+
+void* btLoop(void* arg)
+{
+  struct sockaddr_rc sockaddy;
+  setSocket(&sockaddy);
+  int sfd = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
+  check(sfd,"bt socket\n");
+
+  int retVal = bind(sfd, (struct sockaddr*)&sockaddy, sizeof(sockaddy));
+  check(retVal, "binding"); 
+
+  int retListen = listen(sfd, 5);
+  check(retListen, "listening");
+  
+  while (1)
+  {
+    socklen_t sockLen = sizeof(sockaddy);
+    int devfd = accept(sfd, (struct sockaddr*)&sockaddy, &sockLen);
+    
+    while(1)
+    {
+      u8 buff = 0;
+      if (readAll(devfd, &buff, sizeof(buff)) <= 0) break;
+      Packet p;     
+      pthread_mutex_lock(&mutex);
+      memcpy(&p, &packet, sizeof(packet));
+      pthread_mutex_unlock(&mutex);
+
+      if (buff == 0xB)
+       {
+          printf("Receieved 0xB from client... sending\n");
+          p.header.flagImage = true;
+          sendStatus(devfd, &p);
+       }
+
+      else if (buff == 0xA)
+        {
+          p.header.flagImage = false;
+          printf("Receieved 0xA from client.... sending\n");
+          sendStatus(devfd, &p);
+        }
+    }          
+    close(devfd);
+  }
+}

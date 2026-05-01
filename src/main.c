@@ -1,12 +1,10 @@
 #include "getImage.h"
 #include "sending.h"
+pthread_mutex_t mutex;
+Packet packet;
 
   int main()
   {
-      u32 fullImage[FULL_ROWS][COLUMNS] = {0};
-      u8 res[PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE]  = {0};
-      u8 shelf[NUM_SEGMENTS][PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE] = {0};
-
       SpiConfig config = 
     {
       .device = "/dev/spidev0.0",
@@ -16,16 +14,20 @@
       .delay_usecs = 10
     }; 
 
-     int fd = checkAndSetSPI(&config);   struct sockaddr_in serveradd;
-     socklen_t sockLen = sizeof(serveradd);
-     int sockfd = socket(AF_INET, SOCK_STREAM, DEFAULT);
-     setSocket(&serveradd);
-     int opt = 1;
-     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-     check(sockfd, "socket");
-     int ret = bind(sockfd, (struct sockaddr*)&serveradd, sizeof(serveradd));
-     check(ret, "binding");
-     listen(sockfd, 4);
+      int fd = checkSPI(&config);   
+      u32 fullImage[FULL_ROWS][COLUMNS] = {0};
+      u8 res[PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE]  = {0};
+      u8 shelf[NUM_SEGMENTS][PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE] = {0};
+      printf("connecting to %s\n", DEVICE);
+
+      int rs_fd = open(DEVICE, O_RDWR | O_NOCTTY);
+      check(rs_fd, "rs485");
+      struct termios tty;
+      setTermios(&tty, rs_fd);
+      pthread_mutex_init(&mutex, NULL);
+      
+      pthread_t bt;
+      pthread_create(&bt, NULL, btLoop, NULL);
 
      while (1)
   {
@@ -42,42 +44,45 @@
       if (segmentNumber == 4)
       {
 
-        if (buildImage(fullImage, shelf) < 0)
-        {
-          continue;
-        }
+         if (buildImage(fullImage, shelf) < 0)
+          {
+            continue;
+          }
 
-        Packet packet;
+          printf("Building Packet... \n");
+          u8 buff = 0;
 
-        u8 buff = 0;
+         int ret = readAll(rs_fd, &buff, sizeof(buff));
 
-        int clientfd = accept(sockfd, (struct sockaddr*)&serveradd, &sockLen);
-        readAll(clientfd, &buff, sizeof(buff));
-        setStatus(&packet);
+         check(ret, "readAll func");
+          Packet p;
+          
+         if (buff == 0xB)
+         {
+            u8 gray[FULL_ROWS][COLUMNS] = {0};
+            p.header.flagImage = true;
+            convertToGray(fullImage, gray);
+            printf("Receieved 0xB from client... sending\n");
+            setStatusFromImage(&p, fullImage);
+            memcpy(p.img, gray, sizeof(gray));
+            pthread_mutex_lock(&mutex);
+            memcpy(&packet, &p, sizeof(p));
+            pthread_mutex_unlock(&mutex);
+            sendStatus(rs_fd, &p);
+         }
 
-        if (buff == 0xB)
-        {
-        u8 gray[FULL_ROWS][COLUMNS] = {0};
-
-
-        packet.header.flagImage = true;
-
-        convertToGray(fullImage, gray);
-
-        printf("Receieved 0xA from client... sending\n");
-        setStatusFromImage(&packet, fullImage);
-
-        memcpy(packet.img, gray, sizeof(gray));
-
-        sendStatus(clientfd, &packet);
-
-        close(clientfd);
-        }
+         else if (buff == 0xA)
+          {
+            p.header.flagImage = false;
+            printf("Receieved 0xA from client.... sending\n");
+            setStatusFromImage(&p, fullImage);
+            pthread_mutex_lock(&mutex);
+            memcpy(&packet, &p, sizeof(p));
+            pthread_mutex_unlock(&mutex);
+            sendStatus(rs_fd, &p);
+          }
       }
   }
-
-  close(sockfd);
   return 0;
 }
-
 

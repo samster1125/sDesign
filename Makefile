@@ -12,7 +12,7 @@ OBJ_CPP = $(SRC_CPP:.cpp=.o)
 
 OBJ = $(OBJ_C) $(OBJ_CPP)
 
-TARGET = myprogram
+TARGET = main
 
 all: $(TARGET)
 

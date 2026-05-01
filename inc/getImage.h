@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+
+#include <termios.h>
 #include <stddef.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -32,8 +34,6 @@ extern "C" {
 #define VOSPI_FRAME_SIZE 164
 #define PIXELS_PER_PACKET 80
 #define DEFAULT 0
-#define PORT 8080
-#define IP "192.168.1.246"
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -52,7 +52,7 @@ typedef struct SpiConfig
 int captureOneSegment(int fd, u8 dest[PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE], int *segment_number, const SpiConfig* config);
 int readPacket(int fd, u8 packet[VOSPI_FRAME_SIZE], const SpiConfig* config);
 int buildImage(u32 img[FULL_ROWS][COLUMNS],u8 shelf[NUM_SEGMENTS][PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE]);
-int checkAndSetSPI(SpiConfig* config);
+int checkSPI(SpiConfig* config);
 void pabort(const char *s);
 int findNextFileName(char *out, size_t size);
 void savePPM(const char *filename, u32 image[FULL_ROWS][COLUMNS], int rows, int cols);

@@ -13,27 +13,16 @@ int checkSPI(SpiConfig* config)
         ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &config->bits) < 0 ||
         ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &config->speed) < 0 ||
         ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &config->speed) < 0) {
-        pabort("SPI configuration failed");
+        pabort("SPI config failed");
     }
 
     return fd;
 }
 
-
   void pabort(const char *s)
 {
     perror(s);
     abort();
-}
-
- int findNextFileName(char *out, size_t size)
-{
-    static int counter = 0;
-    for (int i = 0; i < 9999; i++) {
-        snprintf(out, size, "thermal_full_%04d.ppm", counter++);
-        if (access(out, F_OK) != 0) return 1;
-    }
-    return 0;
 }
 
  int readPacket(int fd, u8 packet[VOSPI_FRAME_SIZE], const SpiConfig* config)
@@ -74,7 +63,7 @@ int captureOneSegment(int fd, u8 dest[PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE], in
             resets++;
             usleep(1000);
 
-            if (resets >= 750) {
+            if (resets >= 300) {
                 printf("Too many resets\n");
                 return -1;
             }
@@ -89,7 +78,7 @@ int captureOneSegment(int fd, u8 dest[PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE], in
             resets++;
             usleep(1000);
 
-            if (resets >= 750) {
+            if (resets >= 300) {
               printf("Too many resets\n");
                 return -1;
             }
@@ -210,4 +199,3 @@ u16 getMax(u32 img[FULL_ROWS][COLUMNS])
   }
   return max;
 }
-

@@ -54,8 +54,6 @@ int readPacket(int fd, u8 packet[VOSPI_FRAME_SIZE], const SpiConfig* config);
 int buildImage(u32 img[FULL_ROWS][COLUMNS],u8 shelf[NUM_SEGMENTS][PACKETS_PER_SEGMENT][VOSPI_FRAME_SIZE]);
 int checkSPI(SpiConfig* config);
 void pabort(const char *s);
-int findNextFileName(char *out, size_t size);
-void savePPM(const char *filename, u32 image[FULL_ROWS][COLUMNS], int rows, int cols);
 void convertToGray(u32 img[FULL_ROWS][COLUMNS],u8 gray[FULL_ROWS][COLUMNS]);
 u16 getAverage(u32 img[FULL_ROWS][COLUMNS]);
 u16 getMin(u32 img[FULL_ROWS][COLUMNS]);

@@ -7,7 +7,7 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
 
-
+#define STOP 0xAA
 #define ACK 0xFF
 #define STATUS_NORMAL 0xA
 #define STATUS_PICTURE 0xB
@@ -35,15 +35,6 @@ typedef struct Packet
     size_t       image_size;
 } Packet;
 
-typedef struct RS485
-{
-    const char *device;
-    u8 mode;
-    u8 bits;
-    u32 speed;
-    u16 delay_usecs;
-} RS485;
-
 extern pthread_mutex_t mutex;
 extern Packet packet;
 
@@ -62,5 +53,7 @@ void setStatus(Packet* packet);
 void setStatusFromImage(Packet* packet, u32 img[FULL_ROWS][COLUMNS]);
 void setTermios(struct termios* tty, int fd);
 void* btLoop(void* arg);
+void setPin(int fd, int val);
+int gpioInit(int pin);
   
 #endif

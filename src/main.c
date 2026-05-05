@@ -24,8 +24,22 @@ Packet packet;
       check(rs_fd, "rs485");
       struct termios tty;
       setTermios(&tty, rs_fd);
+      int gpio_12 = gpioInit(12); 
+      check(gpio_12, "gpio init...");
+      setPin(gpio_12, 0);
+
       pthread_mutex_init(&mutex, NULL);
-      
+
+      /// in the event that BT connects first, but webapp should be primary then droid app
+      packet.header.ack = ACK;
+      packet.header.min = 0;
+      packet.header.max = 0;
+      packet.header.avg = 0;
+      packet.header.flagImage = false;
+      packet.header.stop = STOP;
+      packet.header.len = STATUS_NORMAL_SIZE;
+
+
       pthread_t bt;
       pthread_create(&bt, NULL, btLoop, NULL);
 
@@ -52,34 +66,41 @@ Packet packet;
           printf("Building Packet... \n");
           u8 buff = 0;
 
+
          int ret = readAll(rs_fd, &buff, sizeof(buff));
 
          check(ret, "readAll func");
-          Packet p;
+         Packet p;
           
          if (buff == 0xB)
          {
             u8 gray[FULL_ROWS][COLUMNS] = {0};
             p.header.flagImage = true;
             convertToGray(fullImage, gray);
-            printf("Receieved 0xB from client... sending\n");
             setStatusFromImage(&p, fullImage);
             memcpy(p.img, gray, sizeof(gray));
             pthread_mutex_lock(&mutex);
             memcpy(&packet, &p, sizeof(p));
             pthread_mutex_unlock(&mutex);
+            setPin(gpio_12, 1);
+            usleep(1000);
             sendStatus(rs_fd, &p);
+            tcdrain(rs_fd);
+            setPin(gpio_12, 0);
          }
 
          else if (buff == 0xA)
           {
             p.header.flagImage = false;
-            printf("Receieved 0xA from client.... sending\n");
             setStatusFromImage(&p, fullImage);
             pthread_mutex_lock(&mutex);
             memcpy(&packet, &p, sizeof(p));
             pthread_mutex_unlock(&mutex);
+            setPin(gpio_12, 1);
+            usleep(1000);
             sendStatus(rs_fd, &p);
+            tcdrain(rs_fd);
+            setPin(gpio_12, 0);
           }
       }
   }

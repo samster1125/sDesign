@@ -47,7 +47,7 @@ void writeBytes(u8* buf, const void* src, size_t n, size_t* off)
 {
   if (!buf || !src)
   {
-    perror("Something fucked up w/params in writeBytes\n");
+    perror("Something messed up w/params in writeBytes\n");
   }
 
   memcpy(buf+ *off, src, n);
@@ -104,7 +104,7 @@ u8* buildStatus(const Packet* packet)
 
   if (!buf)
   {
-    perror("Malloc fucked up in buildStatus()\n");
+    perror("Malloc messed up in buildStatus()\n");
     return NULL;
   }
 
@@ -134,7 +134,7 @@ int sendStatus(int fd, const Packet* packet)
 
     if (!status) 
     {
-      perror("building packet fucked up in sendStatus()\n");
+      perror("building packet messed up in sendStatus()\n");
       return -1;
     }
 
@@ -161,7 +161,7 @@ int readAll(int fd, void* buff, size_t bufflen)
 
         if (n < 0)
         {
-            perror("Somethng fucked up w/ read");
+            perror("Somethng messed up w/ read");
         }
 
         if (n == 0)
@@ -179,7 +179,7 @@ void setStatus(Packet* packet)
 {
   if (!packet) return;
 
-  packet->header.ack = 0xFF;
+  packet->header.ack = ACK;
   packet->header.stop = 0xAA;
 }
 
@@ -191,6 +191,34 @@ void setStatusFromImage(Packet* packet, u32 img[FULL_ROWS][COLUMNS])
   packet->header.min = getMin(img);
   packet->header.max = getMax(img);
   setStatus(packet);
+}
+
+int gpioInit(int pin)
+{
+    char buf[64];
+
+    int fd = open("/sys/class/gpio/export", O_WRONLY);
+    if (fd < 0) return -1;
+
+    snprintf(buf, sizeof(buf), "%i", pin);
+    write(fd, buf, strlen(buf));
+    close(fd);
+
+    snprintf(buf, sizeof(buf), "/sys/class/gpio/gpio%d/direction", pin);
+    fd = open(buf, O_WRONLY);
+    if (fd < 0) return -1;
+    write(fd, "out", 3);
+    close(fd);
+
+    snprintf(buf, sizeof(buf), "/sys/class/gpio/gpio%d/value", pin);
+    fd = open(buf, O_WRONLY);
+    return fd;  
+}
+
+void setPin(int fd, int value)
+{
+  write(fd, value ? "1" : "0", 1);
+  lseek(fd, 0, SEEK_SET);
 }
 
 void setTermios(struct termios* tty, int fd)
@@ -237,7 +265,6 @@ void* btLoop(void* arg)
 
       if (buff == 0xB)
        {
-          printf("Receieved 0xB from client... sending\n");
           p.header.flagImage = true;
           sendStatus(devfd, &p);
        }
@@ -245,7 +272,6 @@ void* btLoop(void* arg)
       else if (buff == 0xA)
         {
           p.header.flagImage = false;
-          printf("Receieved 0xA from client.... sending\n");
           sendStatus(devfd, &p);
         }
     }          

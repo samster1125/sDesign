@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Eyes On The Power</string>
+
+    <string name="title_main">ELEN 4998 Senior Design : E1 - Eyes On The Power</string>
+    <string name="title_sub">Marquette University - Department of Electrical and Computer Engineering</string>
+    <string name="team_line">Samuel Winn, COEN     Kaden Keller, ELEN     Danny Ryazanov, ELEN     Hubert Mendrycki, ELEN</string>
+    <string name="footer">Developed by Danny Ryazanov  |  Marquette University  ELEN 4998 Senior Design : E1  |  Sponsor: Dynamic Ratings</string>
+
+    <string name="source_label">Source:</string>
+    <string name="source_sim">Simulation</string>
+    <string name="source_bt_off">Bluetooth - not found</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="refresh">Refresh</string>
+    <string name="request_image">Request image</string>
+    <string name="image_on">Image: ON</string>
+    <string name="image_off">Image: OFF</string>
+
+    <string name="warn_label">Warning ≥</string>
+    <string name="crit_label">Critical ≥</string>
+    <string name="deg_f">(°F)</string>
+
+    <string name="status_offline">OFFLINE</string>
+    <string name="status_normal">NORMAL</string>
+    <string name="status_warning">WARNING</string>
+    <string name="status_critical">CRITICAL</string>
+
+    <string name="card_thermal">LIVE THERMAL IMAGE</string>
+    <string name="card_status">SYSTEM STATUS</string>
+    <string name="card_temps">FRAME TEMPERATURES (°F)</string>
+    <string name="card_trend">MAX TEMPERATURE TREND</string>
+    <string name="card_log">EVENT LOG</string>
+
+    <string name="lbl_min">MIN</string>
+    <string name="lbl_avg">AVG</string>
+    <string name="lbl_max">MAX</string>
+    <string name="lbl_peak">SESSION HIGH</string>
+    <string name="placeholder">--</string>
+
+    <string name="not_connected_detail">Not connected to the Pi.</string>
+</resources>

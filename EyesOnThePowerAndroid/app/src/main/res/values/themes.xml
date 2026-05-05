@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.EyesOnThePower" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorPrimaryVariant">@color/accent_2</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorAccent">@color/accent_2</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:textColorPrimary">@color/text</item>
+        <item name="android:statusBarColor">@color/accent</item>
+    </style>
+
+    <!-- White card / panel container -->
+    <style name="CardPanel">
+        <item name="android:background">@drawable/bg_card</item>
+        <item name="android:padding">14dp</item>
+    </style>
+
+    <style name="CardTitle">
+        <item name="android:textColor">@color/accent</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
+
+    <style name="StatBig">
+        <item name="android:textColor">@color/accent</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="StatLabel">
+        <item name="android:textColor">@color/text_dim</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+</resources>

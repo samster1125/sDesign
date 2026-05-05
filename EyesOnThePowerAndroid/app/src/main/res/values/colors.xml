@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light blue palette keyed off the Dynamic Ratings logo.  Same
+         colors as the desktop dashboard so the look stays consistent. -->
+    <color name="bg">#E6F2FB</color>
+    <color name="panel">#FFFFFF</color>
+    <color name="panel_alt">#F2F8FD</color>
+    <color name="border">#B9D6EC</color>
+    <color name="accent">#1F4E8C</color>
+    <color name="accent_2">#2E7DC4</color>
+    <color name="text">#0E2A47</color>
+    <color name="text_dim">#476079</color>
+
+    <color name="status_normal">#2E8B57</color>
+    <color name="status_warning">#E0A800</color>
+    <color name="status_critical">#C0392B</color>
+    <color name="status_offline">#7F8C8D</color>
+
+    <color name="phase1">#FF6B6B</color>
+    <color name="phase2">#FFD93D</color>
+    <color name="phase3">#4DA3FF</color>
+
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

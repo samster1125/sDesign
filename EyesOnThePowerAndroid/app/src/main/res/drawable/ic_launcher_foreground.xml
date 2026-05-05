@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Simple foreground for the adaptive launcher icon.  We just draw a
+   stylized "eye" in the Dynamic Ratings accent blue on a transparent
+   background - the adaptive icon system handles the surrounding shape.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- outer eye shape -->
+    <path
+        android:fillColor="#1F4E8C"
+        android:pathData="M54,38 C72,38 86,54 86,54 C86,54 72,70 54,70 C36,70 22,54 22,54 C22,54 36,38 54,38 Z" />
+
+    <!-- inner iris -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,44 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
+
+    <!-- pupil -->
+    <path
+        android:fillColor="#1F4E8C"
+        android:pathData="M54,54 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+</vector>

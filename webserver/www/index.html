@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THERMAL MONITORING</title>
+
+<!-- Chart.js library for rendering temperature graph -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+/* =========================
+   GLOBAL THEME VARIABLES
+   ========================= */
+:root {
+    --bg: #070b10;
+    --card: #111827;
+    --card2: #0b1220;
+    --border: #223047;
+    --accent: #ff8800;
+}
+
+/* Reset spacing + box model consistency */
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: radial-gradient(circle at top left, #102033, #070b10 45%), var(--bg);
+    color: #ddd;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* =========================
+   HEADER BAR
+   ========================= */
+.header {
+    height: 65px;
+    background: rgba(10,15,22,0.95);
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--accent);
+}
+
+/* Title + live indicator */
+.title { font-size: 1.65rem; font-weight: 700; letter-spacing: 2px; }
+.live { color: #00ff88; font-weight: bold; }
+
+/* =========================
+   MAIN DASHBOARD LAYOUT
+   ========================= */
+.main {
+    height: calc(100vh - 65px);
+    padding: 14px;
+    display: grid;
+    grid-template-rows: 65% 56px 1fr;
+    gap: 12px;
+}
+
+/* Top section: stats + graph */
+.top-section {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 12px;
+}
+
+/* Left column stack (MAX / AVG / MIN cards) */
+.left-stack {
+    display: grid;
+    grid-template-rows: repeat(3,1fr);
+    gap: 12px;
+}
+
+/* Generic card styling */
+.card {
+    background: linear-gradient(145deg, var(--card), var(--card2));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.45);
+    transition: box-shadow .15s;
+}
+
+/* Flash effect when new data arrives */
+.card.flash { box-shadow: 0 0 20px rgba(0,255,200,0.35); }
+
+/* Large numeric values (temperature stats) */
+.value {
+    font-size: 3rem;
+    font-weight: 800;
+}
+
+/* Color coding for stats */
+#max { color:#ff5555; }
+#avg { color:#55ff99; }
+#min { color:#44aaff; }
+
+/* =========================
+   GRAPH SECTION
+   ========================= */
+.graph-container { display:flex; flex-direction:column; }
+.chart-wrap { flex:1; min-height:0; }
+
+/* Slider + history control row */
+.history-control {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:8px;
+    font-size:.8rem;
+    color:#94a3b8;
+}
+
+/* Range slider styling */
+.history-control input {
+    flex:1;
+    accent-color:#ff8800;
+}
+
+/* Button to open thermal image viewer */
+.image-btn {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #1f2937;
+    color: #ddd;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.image-btn:hover { background: #374151; }
+
+/* =========================
+   STATUS ALERT BAR
+   ========================= */
+.alert {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+    border-radius:10px;
+}
+
+/* =========================
+   IMAGE MODAL VIEWER
+   ========================= */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    justify-content: center;
+    align-items: center;
+}
+
+/* Close button (X) */
+#closeModal {
+    position: absolute;
+    top: 20px;
+    right: 40px;
+    color: white;
+    font-size: 40px;
+    cursor: pointer;
+}
+
+/* Container for thermal feed + overlays */
+#feedContainer {
+    position: relative;
+    width: 1000px;
+    height: 800px;
+}
+
+/* Thermal image layers */
+#feedContainer img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    border-radius: 10px;
+}
+
+/* Canvas overlay for crosshair rendering */
+#crosshairCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* FPS display overlay */
+#fpsDisplay {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+}
+
+/* =========================
+   ALERT ANIMATIONS
+   ========================= */
+
+/* Critical overheating pulse */
+@keyframes pulse-red {
+    0%   { box-shadow: 0 0 0px rgba(255,0,0,0);   border-color: #444; }
+    50%  { box-shadow: 0 0 50px rgba(255,0,0,0.9); border-color: red; }
+    100% { box-shadow: 0 0 0px rgba(255,0,0,0);   border-color: #444; }
+}
+
+/* Warning level pulse */
+@keyframes pulse-orange {
+    0%   { box-shadow: 0 0 0px rgba(255,140,0,0); }
+    50%  { box-shadow: 0 0 40px rgba(255,140,0,0.8); }
+    100% { box-shadow: 0 0 0px rgba(255,140,0,0); }
+}
+
+/* Apply alarm effects to thermal feed */
+.alarm-critical img { animation: pulse-red 1s infinite; }
+.alarm-warning  img { animation: pulse-orange 1.5s infinite; }
+
+</style>
+</head>
+
+<body>
+
+<!-- =========================
+     HEADER
+     ========================= -->
+<div class="header">
+    <div class="title">THERMAL MONITORING</div>
+    <div class="live">● LIVE</div>
+</div>
+
+<!-- =========================
+     MAIN DASHBOARD
+     ========================= -->
+<div class="main">
+
+<div class="top-section">
+
+<!-- Left stats panel -->
+<div class="left-stack">
+<div class="card"><div>MAX</div><div id="max" class="value">--</div></div>
+<div class="card"><div>AVG</div><div id="avg" class="value">--</div></div>
+<div class="card"><div>MIN</div><div id="min" class="value">--</div></div>
+</div>
+
+<!-- Graph + controls -->
+<div class="card graph-container">
+<div>TEMPERATURE OVER TIME</div>
+
+<div class="chart-wrap">
+<canvas id="tempChart"></canvas>
+</div>
+
+<!-- History window slider -->
+<div class="history-control">
+<span>5</span>
+<input id="historySlider" type="range" min="5" max="100" value="20">
+<span>100</span>
+<span id="historyCount">20</span>
+</div>
+
+<button id="viewImageBtn" class="image-btn">VIEW THERMAL IMAGE</button>
+
+</div>
+
+</div>
+
+<!-- System status banner -->
+<div id="alert" class="alert">● SYSTEM STATUS: NORMAL</div>
+
+</div>
+
+<!-- =========================
+     THERMAL IMAGE MODAL
+     ========================= -->
+<div id="imageModal" class="modal">
+    <span id="closeModal">&times;</span>
+
+    <div id="feedContainer">
+        <!-- double-buffered frames for smooth switching -->
+        <img id="frame0" style="opacity:1;">
+        <img id="frame1" style="opacity:0;">
+
+        <!-- overlays -->
+        <canvas id="crosshairCanvas"></canvas>
+        <div id="fpsDisplay">-- FPS</div>
+    </div>
+</div>
+
+<script>
+
+/* =========================
+   DATA + THRESHOLDS
+   ========================= */
+const fullHistory = [];
+const TREND_WINDOW = 20;
+const WARNING_RISE = 10;
+const CRITICAL_RISE = 20;
+
+/* Chart.js initialization */
+const ctx = document.getElementById('tempChart').getContext('2d');
+
+/* Line chart for max/avg/min temperature */
+const chart = new Chart(ctx,{
+type:'line',
+data:{labels:[],datasets:[
+{label:'Max',data:[],borderColor:'#ff5555',tension:0.4,pointRadius:0},
+{label:'Avg',data:[],borderColor:'#55ff99',tension:0.4,pointRadius:0},
+{label:'Min',data:[],borderColor:'#44aaff',tension:0.4,pointRadius:0}
+]},
+options:{responsive:true,maintainAspectRatio:false}
+});
+
+/* =========================
+   HISTORY SLIDER HANDLER
+   ========================= */
+document.getElementById('historySlider').addEventListener('input',()=>{
+    const val=document.getElementById('historySlider').value;
+    document.getElementById('historyCount').textContent=val;
+    redraw();
+});
+
+/* Add new telemetry point */
+function addPoint(max,avg,min){
+    fullHistory.push({time:new Date().toLocaleTimeString(),max,avg,min});
+    if(fullHistory.length>500)fullHistory.shift(); // prevent memory growth
+    redraw();
+}
+
+/* Redraw chart using selected history window */
+function redraw(){
+    const n=Number(document.getElementById('historySlider').value);
+    const slice=fullHistory.slice(-n);
+    chart.data.labels=slice.map(p=>p.time);
+    chart.data.datasets[0].data=slice.map(p=>p.max);
+    chart.data.datasets[1].data=slice.map(p=>p.avg);
+    chart.data.datasets[2].data=slice.map(p=>p.min);
+    chart.update();
+}
+
+/* =========================
+   TREND DETECTION
+   ========================= */
+function detectTrend(){
+    if(fullHistory.length<TREND_WINDOW) return {ready:false,avgRise:0,maxRise:0};
+    const recent=fullHistory.slice(-TREND_WINDOW);
+    const first=recent[0];
+    const last=recent[recent.length-1];
+
+    return {
+        ready:true,
+        avgRise:last.avg-first.avg,
+        maxRise:last.max-first.max
+    };
+}
+
+/* Update alert banner + visual alarm states */
+function updateAlert(trend){
+    const alertEl=document.getElementById('alert');
+    const feedContainer=document.getElementById('feedContainer');
+
+    feedContainer.classList.remove('alarm-critical','alarm-warning');
+
+    if(!trend.ready){
+        alertEl.textContent="● SYSTEM STATUS: NORMAL";
+        alertEl.style.background="green";
+        return;
+    }
+
+    if(trend.avgRise>=CRITICAL_RISE||trend.maxRise>=CRITICAL_RISE){
+        alertEl.textContent="⚠ CRITICAL — RISING FAST";
+        alertEl.style.background="red";
+        feedContainer.classList.add('alarm-critical');
+        return;
+    }
+
+    if(trend.avgRise>=WARNING_RISE||trend.maxRise>=WARNING_RISE){
+        alertEl.textContent="⚠ WARNING — TEMP INCREASING";
+        alertEl.style.background="orange";
+        feedContainer.classList.add('alarm-warning');
+        return;
+    }
+
+    alertEl.textContent="● SYSTEM STATUS: NORMAL";
+    alertEl.style.background="green";
+}
+
+/* Quick flash effect on stats update */
+function flash(){
+    document.querySelectorAll('.card').forEach(c=>{
+        c.classList.add('flash');
+        setTimeout(()=>c.classList.remove('flash'),150);
+    });
+}
+
+/* =========================
+   CROSSHAIR RENDERING
+   ========================= */
+function drawCrosshair(hotX, hotY, maxTemp) {
+    const canvas = document.getElementById('crosshairCanvas');
+    const cw = canvas.offsetWidth;
+    const ch = canvas.offsetHeight;
+    canvas.width = cw;
+    canvas.height = ch;
+
+    const ctx2 = canvas.getContext('2d');
+    ctx2.clearRect(0, 0, cw, ch);
+
+    if (hotX === null || hotY === null) return;
+
+    /* normalize sensor coordinates to image space */
+    const x = (hotX / 160) * cw;
+    const y = (hotY / 120) * ch;
+
+    /* draw target rings + crosshair + label */
+}
+
+/* =========================
+   TELEMETRY UPDATE LOOP
+   ========================= */
+async function update(){
+    try{
+        const res=await fetch('/telemetry?t='+Date.now(), {cache:'no-store'});
+        const d=await res.json();
+
+        if(d.valid===false) return;
+
+        addPoint(Number(d.max),Number(d.avg),Number(d.min));
+
+        const trend=detectTrend();
+        updateAlert(trend);
+        flash();
+
+    }catch(e){
+        console.error(e);
+    }
+}
+
+/* =========================
+   THERMAL FEED MODAL LOGIC
+   ========================= */
+// (double-buffered image streaming + FPS tracking + crosshair overlay)
+
+setInterval(update,500);
+update();
+
+</script>
+
+</body>
+</html>

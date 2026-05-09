@@ -71,10 +71,10 @@ Packet packet;
 
          check(ret, "readAll func");
          Packet p;
-          
+         u8 gray[FULL_ROWS][COLUMNS] = {0};
+
          if (buff == 0xB)
          {
-            u8 gray[FULL_ROWS][COLUMNS] = {0};
             p.header.flagImage = true;
             convertToGray(fullImage, gray);
             setStatusFromImage(&p, fullImage);
@@ -92,7 +92,9 @@ Packet packet;
          else if (buff == 0xA)
           {
             p.header.flagImage = false;
+            convertToGray(fullImage, gray);
             setStatusFromImage(&p, fullImage);
+            memcpy(p.img, gray, sizeof(gray));
             pthread_mutex_lock(&mutex);
             memcpy(&packet, &p, sizeof(p));
             pthread_mutex_unlock(&mutex);
@@ -106,4 +108,3 @@ Packet packet;
   }
   return 0;
 }
-
